@@ -536,7 +536,6 @@ class WorkerBase(ABC):
             if again:
                 log.error("_check_pogo_main_screen: failed getting a screenshot again")
                 return False
-            log.debug("_check_pogo_main_screen: Got screenshot, checking GPS")
         attempts = 0
 
         if os.path.isdir(os.path.join(self._applicationArgs.temp_path, 'screenshot%s.png' % str(self._id))):
@@ -573,6 +572,8 @@ class WorkerBase(ABC):
                 found = True
 
             log.info("_check_pogo_main_screen: Previous checks found popups: %s" % str(found))
+            if not found:
+                self._takeScreenshot()
 
             attempts += 1
         log.info("_check_pogo_main_screen: done")

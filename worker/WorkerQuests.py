@@ -229,15 +229,15 @@ class WorkerQuests(MITMBase):
         time.sleep(1 + int(delayadd))
         data_received = '-'
         _data_err_counter = 0
+        _pos = 1
         text_x1, text_x2, text_y1, text_y2 = self._resocalc.get_delete_item_text(self)
         x, y = self._resocalc.get_delete_item_coords(self)[0], self._resocalc.get_delete_item_coords(self)[1]
         click_x1, click_x2, click_y = self._resocalc.get_swipe_item_amount(self)[0], \
                                       self._resocalc.get_swipe_item_amount(self)[1], \
                                       self._resocalc.get_swipe_item_amount(self)[2]
         to = 0
-        while int(to) <= 7 and int(y) <= int(self._screen_y):
+        while int(to) <= 7 and int(_pos) <= int(4):
             self._takeScreenshot()
-            # filename, hash, x1, x2, y1, y2
             item_text = self._pogoWindowManager.get_inventory_text(os.path.join(self._applicationArgs.temp_path,
                                                                                 'screenshot%s.png' % str(self._id)),
                                                                    self._id, text_x1, text_x2, text_y1, text_y2)
@@ -270,14 +270,12 @@ class WorkerQuests(MITMBase):
                         y += self._resocalc.get_next_item_coord(self)
                         text_y1 += self._resocalc.get_next_item_coord(self)
                         text_y2 += self._resocalc.get_next_item_coord(self)
+                        _pos += 1
                 else:
-                    log.info('Click Gift / Raidpass')
+                    log.info('Unknown error')
                     if not self._checkPogoButton():
                         self._checkPogoClose()
-                    data_received = '-'
-                    y += self._resocalc.get_next_item_coord(self)
-                    text_y1 += self._resocalc.get_next_item_coord(self)
-                    text_y2 += self._resocalc.get_next_item_coord(self)
+                    to = 7
 
         x, y = self._resocalc.get_close_main_button_coords(self)[0], self._resocalc.get_close_main_button_coords(self)[
             1]
