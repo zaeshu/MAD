@@ -4,6 +4,7 @@ import logging
 import math
 import queue
 import sys
+import time
 from threading import Event, Lock, Thread
 
 import websockets
@@ -129,7 +130,7 @@ class WebsocketServer(object):
             client_mapping = self.__device_mappings[id]
             timer = Timer(client_mapping["switch"], id, client_mapping["switch_interval"])
             log.debug("Switchtime for %s all set up, brief delay")
-            await asyncio.sleep(1)
+            time.sleep(0.8)
             log.debug("Setting up routemanagers for %s" % str(id))
             daytime_routemanager = self.__routemanagers[client_mapping["daytime_area"]].get("routemanager")
             if client_mapping.get("nighttime_area", None) is not None:
