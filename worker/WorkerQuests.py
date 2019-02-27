@@ -227,7 +227,6 @@ class WorkerQuests(MITMBase):
         x, y = self._resocalc.get_item_menu_coords(self)[0], self._resocalc.get_item_menu_coords(self)[1]
         self._communicator.click(int(x), int(y))
         time.sleep(1 + int(delayadd))
-        data_received = '-'
         _data_err_counter = 0
         _pos = 1
         text_x1, text_x2, text_y1, text_y2 = self._resocalc.get_delete_item_text(self)
@@ -236,8 +235,8 @@ class WorkerQuests(MITMBase):
                                       self._resocalc.get_swipe_item_amount(self)[1], \
                                       self._resocalc.get_swipe_item_amount(self)[2]
         to = 0
+        self._takeScreenshot()
         while int(to) <= 7 and int(_pos) <= int(4):
-            self._takeScreenshot()
             item_text = self._pogoWindowManager.get_inventory_text(os.path.join(self._applicationArgs.temp_path,
                                                                                 'screenshot%s.png' % str(self._id)),
                                                                    self._id, text_x1, text_x2, text_y1, text_y2)
@@ -247,6 +246,7 @@ class WorkerQuests(MITMBase):
                 y += self._resocalc.get_next_item_coord(self)
                 text_y1 += self._resocalc.get_next_item_coord(self)
                 text_y2 += self._resocalc.get_next_item_coord(self)
+                _pos += 1
             else:
 
                 self._communicator.click(int(x), int(y))
@@ -259,23 +259,19 @@ class WorkerQuests(MITMBase):
                 curTime = time.time()
                 self._communicator.click(int(delx), int(dely))
 
-                data_received = self._wait_for_data(timestamp=curTime, proto_to_wait_for=4, timeout=15)
+                data_received = self._wait_for_data(timestamp=curTime, proto_to_wait_for=4, timeout=25)
 
                 if data_received is not None:
                     if 'Clear' in data_received:
                         to += 1
                     else:
-                        self._communicator.backButton()
-                        data_received = '-'
                         y += self._resocalc.get_next_item_coord(self)
                         text_y1 += self._resocalc.get_next_item_coord(self)
                         text_y2 += self._resocalc.get_next_item_coord(self)
                         _pos += 1
                 else:
                     log.info('Unknown error')
-                    if not self._checkPogoButton():
-                        self._checkPogoClose()
-                    to = 7
+                    to = 8
 
         x, y = self._resocalc.get_close_main_button_coords(self)[0], self._resocalc.get_close_main_button_coords(self)[
             1]

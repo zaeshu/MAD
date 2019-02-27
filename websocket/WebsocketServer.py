@@ -129,7 +129,7 @@ class WebsocketServer(object):
             last_known_state = {}
             client_mapping = self.__device_mappings[id]
             timer = Timer(client_mapping["switch"], id, client_mapping["switch_interval"])
-            log.debug("Switchtime for %s all set up, brief delay")
+            log.debug("Switchtime for %s all set up, brief delay" % str(id))
             time.sleep(0.8)
             log.debug("Setting up routemanagers for %s" % str(id))
             daytime_routemanager = self.__routemanagers[client_mapping["daytime_area"]].get("routemanager")
