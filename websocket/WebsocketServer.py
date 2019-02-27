@@ -111,6 +111,7 @@ class WebsocketServer(object):
 
         self.__current_users_mutex.acquire()
         try:
+            log.debug("Checking if %s is already present" % str(id))
             user_present = self.__current_users.get(id)
             if user_present is not None:
                 log.warning("Worker with origin %s is already running, "
@@ -123,10 +124,12 @@ class WebsocketServer(object):
                             % str(websocket_client_connection.request_headers.get_all("Origin")[0]))
                 return False
 
+            log.debug("Setting up switchtimer for %s" % str(id))
             last_known_state = {}
             client_mapping = self.__device_mappings[id]
             timer = Timer(client_mapping["switch"], id, client_mapping["switch_interval"])
             await asyncio.sleep(0.8)
+            log.debug("Setting up routemanagers for %s" % str(id))
             daytime_routemanager = self.__routemanagers[client_mapping["daytime_area"]].get("routemanager")
             if client_mapping.get("nighttime_area", None) is not None:
                 nightime_routemanager = self.__routemanagers[client_mapping["nighttime_area"]].get("routemanager", None)
@@ -134,6 +137,7 @@ class WebsocketServer(object):
                 nightime_routemanager = None
             devicesettings = client_mapping["settings"]
 
+            log.debug("Setting up worker for %s" % str(id))
             started = False
             if timer.get_switch() is True and client_mapping.get("nighttime_area", None) is not None:
                 # set global mon_iv
@@ -186,6 +190,7 @@ class WebsocketServer(object):
                     log.fatal("Mode not implemented")
                     sys.exit(1)
 
+            log.debug("Starting worker for %s" % str(id))
             new_worker_thread = Thread(name='worker_%s' % id, target=worker.start_worker)
             new_worker_thread.daemon = True
             self.__current_users[id] = [new_worker_thread, worker, websocket_client_connection, 0]
