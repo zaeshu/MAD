@@ -254,16 +254,22 @@ class WebsocketServer(object):
                     # TODO: do it abruptly in the worker, maybe set a flag to be checked for in send_and_wait to
                     # TODO: throw an exception
                     worker[1].stop_worker()
-                self.clean_up_user(worker_id)
+                self.clean_up_user(worker_id, None)
                 return
 
             if message is not None:
                 await self.__on_message(message)
         log.warning("Connection of %s closed in consumer_handler" % str(worker_id))
 
-    def clean_up_user(self, worker_id):
+    def clean_up_user(self, worker_id, worker_instance):
+        """
+        :param worker_id: The ID/Origin of the worker
+        :param worker_instance: None if the cleanup is called from within the websocket server
+        :return:
+        """
         self.__current_users_mutex.acquire()
-        if worker_id in self.__current_users.keys():
+        if worker_id in self.__current_users.keys() and (worker_instance is None
+                                                         or self.__current_users[worker_id][1] == worker_instance):
             if self.__current_users[worker_id][2].open:
                 log.info("Calling close for %s..." % str(worker_id))
                 asyncio.ensure_future(self.__current_users[worker_id][2].close(), loop=self.__loop)
@@ -362,7 +368,7 @@ class WebsocketServer(object):
             if new_count > 5:
                 log.error("5 consecutive timeouts to %s, cleanup" % str(id))
                 # TODO: signal worker to stop and NOT cleanup the websocket by itself!
-                self.clean_up_user(id)
+                self.clean_up_user(id, None)
                 raise WebsocketWorkerTimeoutException
 
         self.__remove_request(message_id)

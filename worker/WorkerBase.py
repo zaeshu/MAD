@@ -218,7 +218,6 @@ class WorkerBase(ABC):
         if self._route_manager_nighttime is not None:
             self._route_manager_nighttime.unregister_worker(self._id)
 
-        self._communicator.cleanup_websocket()
         log.info("Stopping Route")
         # self.stop_worker()
         if self._async_io_looper_thread is not None:
@@ -228,6 +227,7 @@ class WorkerBase(ABC):
         if self._timer is not None:
             log.info("Stopping switch timer")
             self._timer.stop_switch()
+        self._communicator.cleanup_websocket(self)
         log.info("Internal cleanup of %s finished" % str(self._id))
 
     def _main_work_thread(self):
