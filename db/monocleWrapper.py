@@ -663,7 +663,7 @@ class MonocleWrapper(DbWrapperBase):
             return False
         query_mons_insert = (
             "INSERT IGNORE INTO sightings (pokemon_id, spawn_id, expire_timestamp, encounter_id, "
-            "lat, lon, updated, gender, form, weather_boosted_condition, weather_cell_id) "
+            "lat, lon, updated, gender, form, weather_boosted_condition, costume, weather_cell_id) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         )
 
