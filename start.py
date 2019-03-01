@@ -15,6 +15,7 @@ from db.monocleWrapper import MonocleWrapper
 from db.rmWrapper import RmWrapper
 from mitm_receiver.MitmMapper import MitmMapper
 from mitm_receiver.MITMReceiver import MITMReceiver
+from utils.madGlobals import terminate_mad
 from utils.mappingParser import MappingParser
 from utils.walkerArgs import parseArgs
 from utils.webhookHelper import WebhookHelper
@@ -122,12 +123,13 @@ def start_ocr_observer(args, db_helper):
     observer.schedule(checkScreenshot(args, db_helper), path=args.raidscreen_path)
     observer.start()
 
+
 def delete_old_logs(minutes):
     if minutes == 0:
         log.info('delete_old_logs: Search/Delete logs is disabled')
         return
 
-    while True:
+    while not terminate_mad.is_set():
         log.info('delete_old_logs: Search/Delete logs older than ' + str(minutes) + ' minutes')
 
         now = time.time()
@@ -146,6 +148,7 @@ def delete_old_logs(minutes):
 
         log.info('delete_old_logs: Search/Delete logs finished')
         time.sleep(3600)
+
 
 def start_madmin(args, db_wrapper):
     from madmin.madmin import madmin_start
@@ -167,7 +170,7 @@ def file_watcher(db_wrapper, mitm_mapper, ws_server):
     refresh_time_sec = 60
     filename = 'configs/mappings.json'
 
-    while True:
+    while not terminate_mad:
         # Wait (x-1) seconds before refresh, min. 1s.
         time.sleep(max(1, refresh_time_sec - 1))
         try:
@@ -292,7 +295,7 @@ if __name__ == "__main__":
                                          mitm_mapper, args, auths, db_wrapper)
             t_mitm = Thread(name='mitm_receiver',
                             target=mitm_receiver.run_receiver)
-            t_mitm.daemon = False
+            t_mitm.daemon = True
             t_mitm.start()
 
             log.info('Starting scanner....')
@@ -321,14 +324,30 @@ if __name__ == "__main__":
     if args.with_madmin:
         log.info('Starting Madmin on Port: %s' % str(args.madmin_port))
         t_flask = Thread(name='madmin', target=start_madmin, args=(args, db_wrapper,))
-        t_flask.daemon = False
+        t_flask.daemon = True
         t_flask.start()
         
     log.info('Starting Log Cleanup Thread....')
     t_cleanup = Thread(name='cleanuplogs',
-                      target=delete_old_logs(args.cleanup_age))
-    t_cleanup.daemon = False
+                       target=delete_old_logs(args.cleanup_age))
+    t_cleanup.daemon = True
     t_cleanup.start()
 
-    while True:
-        time.sleep(10)
+    try:
+        while True:
+            time.sleep(10)
+    finally:
+        db_wrapper = None
+        log.fatal("Stop called")
+        terminate_mad.set()
+        # now cleanup all threads...
+        webhook_helper.stop_helper()
+        # TODO: check against args or init variables to None...
+        if t_mitm is not None:
+            mitm_receiver.stop_receiver()
+        if ws_server is not None:
+            ws_server.stop_server()
+            t_ws.join()
+        if t_file_watcher is not None:
+            t_file_watcher.join()
+        sys.exit(0)

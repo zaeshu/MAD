@@ -63,10 +63,14 @@ class WebsocketServer(object):
         log.info("Allowed origins derived: %s" % str(allowed_origins))
 
         asyncio.set_event_loop(self.__loop)
-        asyncio.get_event_loop().run_until_complete(
+        self.__loop.run_until_complete(
                 websockets.serve(self.handler, self.__listen_address, self.__listen_port, max_size=2 ** 25,
                                  origins=allowed_origins, ping_timeout=10, ping_interval=15))
-        asyncio.get_event_loop().run_forever()
+        self.__loop.run_forever()
+
+    def stop_server(self):
+        if self.__loop is not None:
+            self.__loop.call_soon_threadsafe(self.__loop.stop)
 
     async def handler(self, websocket_client_connection, path):
         log.info("Waiting for connection...")
@@ -194,7 +198,7 @@ class WebsocketServer(object):
 
             log.debug("Starting worker for %s" % str(id))
             new_worker_thread = Thread(name='worker_%s' % id, target=worker.start_worker)
-            new_worker_thread.daemon = True
+            new_worker_thread.daemon = False
             self.__current_users[id] = [new_worker_thread, worker, websocket_client_connection, 0]
         finally:
             self.__current_users_mutex.release()
