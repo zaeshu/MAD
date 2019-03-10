@@ -170,11 +170,12 @@ class RmWrapper(DbWrapperBase):
                 "UPDATE raid "
                 "SET level = %s, spawn = FROM_UNIXTIME(%s), start = %s, end = %s, "
                 "pokemon_id = %s, last_scanned = FROM_UNIXTIME(%s), cp = %s, "
-                "move_1 = %s, move_2 = %s "
+                "move_1 = %s, move_2 = %s"
                 "WHERE gym_id = %s"
             )
             vals = (
-                lvl, now_timestamp, start_db, end_db, pkm, int(time.time()), '999', '1', '1', gym
+                lvl, now_timestamp, start_db, end_db, pkm, int(time.time()), '999', '1', '1', 
+                gym
             )
             # send out a webhook - this case should only occur once...
             wh_send = True
@@ -186,7 +187,7 @@ class RmWrapper(DbWrapperBase):
             query = (
                 "UPDATE raid "
                 "SET level = %s, pokemon_id = %s, last_scanned = FROM_UNIXTIME(%s), cp = %s, "
-                "move_1 = %s, move_2 = %s "
+                "move_1 = %s, move_2 = %s"
                 "WHERE gym_id = %s"
             )
             vals = (
@@ -206,7 +207,7 @@ class RmWrapper(DbWrapperBase):
                 "UPDATE raid "
                 "SET level = %s, spawn = FROM_UNIXTIME(%s), start = %s, end = %s, "
                 "pokemon_id = %s, last_scanned = FROM_UNIXTIME(%s), cp = %s, "
-                "move_1 = %s, move_2 = %s "
+                "move_1 = %s, move_2 = %s"
                 "WHERE gym_id = %s"
             )
             vals = (
@@ -852,12 +853,13 @@ class RmWrapper(DbWrapperBase):
 
         query_gym = (
             "INSERT INTO gym (gym_id, team_id, guard_pokemon_id, slots_available, enabled, latitude, longitude, "
-            "total_cp, is_in_battle, last_modified, last_scanned) "
-            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "total_cp, is_in_battle, last_modified, last_scanned, park) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON DUPLICATE KEY UPDATE "
             "guard_pokemon_id=VALUES(guard_pokemon_id), team_id=VALUES(team_id), "
             "slots_available=VALUES(slots_available), last_scanned=VALUES(last_scanned), "
-            "last_modified=VALUES(last_modified)"
+            "last_modified=VALUES(last_modified), is_in_battle=VALUES(is_in_battle), "
+            "park=VALUES(park)"
         )
         query_gym_details = (
             "INSERT INTO gymdetails (gym_id, name, url, last_scanned) "
@@ -877,13 +879,15 @@ class RmWrapper(DbWrapperBase):
                     raidendSec = 0
                     last_modified_ts = gym['last_modified_timestamp_ms']/1000
                     last_modified = datetime.utcfromtimestamp(last_modified_ts).strftime("%Y-%m-%d %H:%M:%S")
-
+                    is_ex_raid_eligible = int(gym['gym_details']['is_ex_raid_eligible'])
+                    is_in_battle = int(gym['gym_details']['is_in_battle'])
+                    
                     if gym['gym_details']['has_raid']:
                         raidendSec = int(gym['gym_details']['raid_info']['raid_end'] / 1000)
 
                     self.webhook_helper.send_gym_webhook(
                         gymid, raidendSec, 'unknown', team_id, slots_available, guard_pokemon_id,
-                        latitude, longitude, last_modified_ts
+                        latitude, longitude, last_modified_ts, is_ex_raid_eligible
                     )
 
                     gym_args.append(
@@ -892,9 +896,10 @@ class RmWrapper(DbWrapperBase):
                             1,  # enabled
                             latitude, longitude,
                             0,  # total CP
-                            0,  # is_in_battle
+                            is_in_battle,  # is_in_battle
                             last_modified,  # last_modified
-                            now   # last_scanned
+                            now,   # last_scanned
+                            is_ex_raid_eligible
                         )
                     )
 
@@ -954,13 +959,14 @@ class RmWrapper(DbWrapperBase):
                     level = gym['gym_details']['raid_info']['level']
                     gymid = gym['id']
                     team = gym['gym_details']['owned_by_team']
+                    is_ex_raid_eligible = int(gym['gym_details']['is_ex_raid_eligible'])
 
                     # TODO: get matching weather...
                     self.webhook_helper.send_raid_webhook(
                         gymid=gymid, type='RAID', start=raidbattleSec, end=raidendSec, lvl=level,
                         mon=pokemon_id, team_param=team, cp_param=cp, move1_param=move_1,
                         move2_param=move_2, lat_param=gym['latitude'], lng_param=gym['longitude'],
-                        image_url=gym['image_url']
+                        image_url=gym['image_url'], ex_eligible_param=is_ex_raid_eligible
                     )
 
                     log.info("Adding/Updating gym at gym %s with level %s ending at %s"
